@@ -19,6 +19,7 @@
 #ifndef LIS3DH_H
 #define LIS3DH_H
 
+#include "BusOut.h"
 #include "mbed.h"
 #include <memory>
 
@@ -134,6 +135,13 @@ public:
 
     /** Configure data pin
       * @param data MISO MOSI SCLK and CS pins
+      * @param output data rate selection, power down mode, 1Hz to 5KHz
+      * @param full scale selection, +/-2g to +/-16g
+      */
+    LIS3DH(std::shared_ptr<SPI> _spi, std::shared_ptr<BusOut> _csBus, uint8_t _csAddr, uint8_t data_rate = LIS3DH_DR_NR_LP_50HZ, uint8_t fullscale = LIS3DH_FS_8G);
+
+    /** Configure data pin
+      * @param data MISO MOSI SCLK and CS pins
       * @default output data rate selection = 50Hz
       * @default full scale selection = +/-8g
       */
@@ -185,6 +193,8 @@ public:
     void write_reg(uint8_t addr, uint8_t data);
     
 protected:
+    void activateCS();
+    void deactivateCS();
     void readRegs(uint8_t addr, char * data, int len);
     void writeRegs(uint8_t * data, int len);
     void write16(uint8_t addr, uint16_t data16);
@@ -193,7 +203,9 @@ protected:
 
     void read_reg_data(char *data);
     std::shared_ptr<SPI> spi;
-    DigitalOut cs ;
+    DigitalOut cs;
+    std::shared_ptr<BusOut> csBus;
+    uint8_t csAddr;
 
 private:
 #if OLD_REV
@@ -207,6 +219,30 @@ private:
     char tx_buf[1];
     char rx_buf[4];
 };
+
+inline void LIS3DH::activateCS()
+{
+    if(cs.is_connected())
+    {
+        cs = 0;
+    }
+    else
+    {
+        csBus->write(csAddr);
+    }
+}
+
+inline void LIS3DH::deactivateCS()
+{
+    if(cs.is_connected())
+    {
+        cs = 1;
+    }
+    else
+    {
+        csBus->write(0x00);
+    }
+}
 
 #endif      // LIS3DH_H
 

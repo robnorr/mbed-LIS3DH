@@ -30,14 +30,25 @@ LIS3DH::LIS3DH (std::shared_ptr<SPI> _spi, DigitalOut _cs) : spi(_spi), cs(_cs)
     init (LIS3DH_DR_NR_LP_50HZ, LIS3DH_FS_8G);
 }
 
+LIS3DH::LIS3DH(std::shared_ptr<SPI> _spi, std::shared_ptr<BusOut> _csBus, uint8_t _csAddr, uint8_t data_rate, uint8_t fullscale)
+    : spi(_spi)
+    , csBus(_csBus)
+    , csAddr(_csAddr)
+    , cs(NC)
+{
+    spi->frequency(4000000);
+    init (data_rate, fullscale);
+}
+
+
 void LIS3DH::readRegs(uint8_t addr, char * data, int len) {
     // cs = 1 ;
     // wait_us(1000);
     for (int i = 0 ; i < len ; i++ ) {    
         tx_buf[0] = (addr+i)|0x80;
-        cs = 1;
+        activateCS();
         spi->write(tx_buf, 1, rx_buf, 2) ;  // specify address to read
-        cs = 0;
+        deactivateCS();
         // printf("\r\nspi read %i got %i %i %i %i", addr+i, rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3]);
         data[i] = rx_buf[1];
     } 
@@ -47,11 +58,11 @@ void LIS3DH::readRegs(uint8_t addr, char * data, int len) {
 }
 
 void LIS3DH::writeRegs(uint8_t * data, int len) {
-   cs = 1 ;
-   for (int i = 0 ; i < len ; i++ ) {
-      spi->write(data[i]) ;
-   }
-   cs = 0 ;
+    activateCS();
+    for (int i = 0 ; i < len ; i++ ) {
+        spi->write(data[i]) ;
+    }
+    deactivateCS();
 }
 
 void LIS3DH::write_reg(uint8_t addr, uint8_t data8)
